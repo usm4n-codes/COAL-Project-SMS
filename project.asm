@@ -1,10 +1,10 @@
     [org 0x0100]
     jmp start
-    menu db 10,13," STUDENT MANAGEMENT SYSTEM ",10,13
-     db "1. Add Student",10,13
+    menu db 10,10,13," STUDENT MANAGEMENT SYSTEM ",10,13
+     db 10,13,"1. Add Student",10,13
      db "2. View Students",10,13
-     db "3. Fee Status",10,13
-     db "4. Exit",10,13
+     db "3. Take Attendence",10,13
+     db "4. Show Attendence",10,13
      db "Enter Choice: $"
 
      choice : db 0
@@ -29,10 +29,22 @@
      std4:db 0,0,0,0,0,0,0,0,0,0,0
      std5:db 0,0,0,0,0,0,0,0,0,0,0
      stdcount : db 0
+     ;student end
      
      ;attendence
-     attendencein : db 13,10,10,"Please enter student name : $"
-     attendence: db 13,10,"attendence record : $";11-15
+     dsp_takingatten: db 13,10,10, "!!         Taking Attendence      !!",13,10,"$"
+     dsp_atten: db 13,10,10, "!!         Showing Attendence      !!",13,10,"$"
+     attenin : db 13,10,"enter attendence of rollnumber $"
+     space : db " : $"
+     slash : db " | $"
+     attenout: db 13,10,"attendence record of rollnumber $"
+     atten  db 1,0,0,0,0,0 ;0-5 s1
+            db 2,0,0,0,0,0 ;6-11 s2
+            db 3,0,0,0,0,0 ;12-17 s3
+            db 4,0,0,0,0,0 ;18-23 s4
+            db 5,0,0,0,0,0 ;24-29 s5
+     atpointer: db 0 ;1,2,3,4,5
+     ;attendence end
 
     start:
     mov dx,menu
@@ -47,12 +59,23 @@
     je opt1
     cmp byte[choice],'2'
     je opt2
+    cmp byte[choice],'3'
+    je opt3
+    cmp byte[choice],'4'
+    je opt4
+
     jmp exit
     opt1:
         call add_student
         jmp start
     opt2:
         call show_student
+        jmp start
+    opt3:
+        call take_attendence
+        jmp start
+    opt4:
+        call show_attendence
         jmp start
     jmp exit
 
@@ -177,6 +200,95 @@
         mov dl,13
         int 21h
         ret
+    take_attendence: 
+       mov dx,dsp_takingatten
+       mov ah,09h
+       int 21h
+
+       mov cl,1
+       mov si,0
+       mov bl,[atpointer]
+       mov bh,0
+       add bx,1
+       label:
+       ;// input show block
+              mov dx,attenin
+              mov ah,09h
+              int 21h
+
+              mov ch,[atten+si]
+              add ch,30h
+              mov dl ,ch
+              mov ah,02h
+              int 21h
+
+              mov dx,space
+              mov ah,09h
+              int 21h
+       ;//end input show block
+
+       ;//input attendence block
+
+              mov ah,01h
+              int 21h
+
+              mov [atten+si+bx],al
+       ;end iput block
+              add cl,1
+              add si,6
+              cmp cl,6
+              jne label
+       mov [atpointer],bl
+     ret
+     show_attendence:
+       mov dx,dsp_atten
+       mov ah,09h
+       int 21h
+     ;[atpointer] have the toatal number of attendence so show
+     ;attendence upto [atpointer value]
+       mov cl,1
+       mov bl,[atpointer]
+       mov bh,0
+       cmp bl,0
+       je endb
+       mov si,0
+       show_outer:
+              mov bp,1
+              ;mov bp,0 ; for the inner loop
+              mov dx,attenout
+              mov ah,09h
+              int 21h
+
+              ; mov ch,[atten+si]
+              ; add ch,30h
+              mov dl ,cl
+              add dl,30h
+              mov ah,02h
+              int 21h
+
+              mov dx,space
+              mov ah,09h
+              int 21h
+              ;show record 
+              show_inner:
+                     mov dl,[atten+bp+si]
+                     mov ah,02h
+                     int 21h
+
+                     mov dx,slash
+                     mov ah,09h
+                     int 21h
+
+                     add bp,1
+                     cmp bp,bx 
+                     jle show_inner
+
+              add cl,1
+              add si,6
+              cmp cl,6
+              jne show_outer
+              endb:
+              ret
         
     exit:
     mov ax,0x4c00
